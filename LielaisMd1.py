@@ -1,6 +1,9 @@
 import numpy as np
+import os
 from keras.layers import Flatten, Dense
 from keras.models import Sequential
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class RPS:
@@ -43,16 +46,8 @@ class RPS:
             self.model.fit(data, labels, epochs=8500, batch_size=9, verbose=0)
             self.model.save_weights('rps_model')
 
-    def _getOneHot(self, choice):
-        encoding = {
-            'scissors': [0, 0, 1],
-            'paper': [0, 1, 0],
-            'rock': [1, 0, 0],
-        }
-        return encoding.get(choice.lower(), 'Invalid choice')
-
     def play(self, first, second):
-        prediction = self.model.predict(np.array([[self._getOneHot(first), self._getOneHot(second)]]))[0]
+        prediction = self.model.predict(np.array([[self._get_on_hot(first), self._get_on_hot(second)]]))[0]
         if prediction[0] > 0.999 and prediction[1] < 0.001:
             print('1.{} vs 2.{} -> first player won'.format(first, second))
         elif prediction[1] > 0.999 and prediction[0] < 0.001:
@@ -61,6 +56,15 @@ class RPS:
             print('1.{} vs 2.{} -> draw'.format(first, second))
         else:
             print('Ambiguous result')
+
+    @staticmethod
+    def _get_on_hot(choice):
+        encoding = {
+            'scissors': [0, 0, 1],
+            'paper': [0, 1, 0],
+            'rock': [1, 0, 0],
+        }
+        return encoding.get(choice.lower(), 'Invalid choice')
 
 
 if __name__ == "__main__":
