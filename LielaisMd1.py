@@ -11,8 +11,8 @@ class RPS:
         self.model = Sequential(
             [
                 Flatten(input_shape=(2, 3)),
-                Dense(50, activation='sigmoid'),
-                Dense(2, activation='sigmoid'),
+                Dense(35, activation='sigmoid'),
+                Dense(2, activation='sigmoid')
             ]
         )
 
@@ -32,7 +32,7 @@ class RPS:
                 [[1, 0, 0], [0, 1, 0]],
                 [[1, 0, 0], [1, 0, 0]]
             ])
-            labels = np.array([
+            answers = np.array([
                 [1, 1],
                 [1, 0],
                 [0, 1],
@@ -43,11 +43,11 @@ class RPS:
                 [0, 1],
                 [1, 1]
             ])
-            self.model.fit(data, labels, epochs=8500, batch_size=9, verbose=0)
+            self.model.fit(data, answers, epochs=8500, batch_size=9, verbose=1)
             self.model.save_weights('rps_model')
 
     def play(self, first, second):
-        prediction = self.model.predict(np.array([[self._get_on_hot(first), self._get_on_hot(second)]]))[0]
+        prediction = self.model.predict(np.array([[self._get_one_hot(first), self._get_one_hot(second)]]))[0]
         if prediction[0] > 0.999 and prediction[1] < 0.001:
             print('1.{} vs 2.{} -> first player won'.format(first, second))
         elif prediction[1] > 0.999 and prediction[0] < 0.001:
@@ -58,17 +58,17 @@ class RPS:
             print('Ambiguous result')
 
     @staticmethod
-    def _get_on_hot(choice):
+    def _get_one_hot(choice):
         encoding = {
             'scissors': [0, 0, 1],
-            'paper': [0, 1, 0],
-            'rock': [1, 0, 0],
+            'paper':    [0, 1, 0],
+            'rock':     [1, 0, 0],
         }
         return encoding.get(choice.lower(), 'Invalid choice')
 
 
 if __name__ == "__main__":
-    rps = RPS(load=True)
+    rps = RPS(load=False)
     rps.play('scissors', 'scissors')
     rps.play('scissors', 'rock')
     rps.play('scissors', 'paper')
