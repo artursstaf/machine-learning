@@ -43,7 +43,7 @@ class RPS:
                 [0, 1],
                 [1, 1]
             ])
-            self.model.fit(data, answers, epochs=8500, batch_size=9, verbose=1)
+            self.model.fit(data, answers, epochs=9000, batch_size=9, verbose=1)
             self.model.save_weights('rps_model')
 
     def play(self, first, second):
@@ -61,8 +61,8 @@ class RPS:
     def _get_one_hot(choice):
         encoding = {
             'scissors': [0, 0, 1],
-            'paper':    [0, 1, 0],
-            'rock':     [1, 0, 0],
+            'paper': [0, 1, 0],
+            'rock': [1, 0, 0],
         }
         return encoding.get(choice.lower(), 'Invalid choice')
 
