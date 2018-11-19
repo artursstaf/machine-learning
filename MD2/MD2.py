@@ -59,7 +59,7 @@ class Dice:
     @staticmethod
     def load_data(vectors):
         """
-        :param vectors: x by 401 numpy array
+        :param vectors: x by 401 numpy arrays
         :return: ready for training images and labels
         """
         dice = np.vstack(tuple(vectors))
