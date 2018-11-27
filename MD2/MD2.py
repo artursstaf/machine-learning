@@ -45,7 +45,7 @@ class Dice:
             if np.argmax(sample_answer) != result:
                 errors += 1
 
-        print(f'{errors} errors from {len(data)} test samples, {1 - errors / len(data) * 100} % precision')
+        print(f'{errors} errors from {len(data)} test samples, {(1 - errors / len(data)) * 100} % precision')
         return errors
 
     def predict(self, image):
