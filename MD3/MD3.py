@@ -13,6 +13,7 @@ class Imdb:
         (self.word_to_id, self.id_to_word) = self.get_imdb_word_mappings()
         self.max_features = 20000
         self.max_length = 400
+        self.skip_top = 20
 
         if load:
             self.model = load_model("imdb_model.h5")
@@ -33,8 +34,13 @@ class Imdb:
             self.model.compile(metrics=['acc'], optimizer='adam', loss='binary_crossentropy')
 
             (x_train, y_train), (x_test, y_test) = imdb.load_data(path="imdb.npz", num_words=self.max_features,
+                                                                  skip_top=self.skip_top,
                                                                   seed=946,
                                                                   start_char=1, oov_char=2, index_from=3)
+            # correct start char
+            for i, y in zip(x_train, x_test):
+                i[0] = 1
+                y[0] = 1
 
             (x_train, x_test) = (self.pad(x_train), self.pad(x_test))
 
@@ -43,8 +49,8 @@ class Imdb:
                            validation_data=(x_test, y_test))
 
             # Save models separately
-            self.model.save('imdb_model.h5')
-            self.model_predict.save("imdb_predict_model.h5")
+            self.model.save('imdb_model_2.h5')
+            self.model_predict.save("imdb_predict_model_2.h5")
 
             print(self.model.evaluate(x_test, y_test))
 
@@ -52,14 +58,11 @@ class Imdb:
         def get_mapping(word):
             if word in self.word_to_id.keys():
                 mapping = self.word_to_id[word]
-                # skip_top and limit max words
-                if mapping < self.max_features:
+                # limit max words
+                if self.skip_top <= mapping < self.max_features:
                     return mapping
-                else:
-                    return 2
-            else:
-                # oov character
-                return 2
+            # oov character
+            return 2
 
         with open(filename) as file:
             word_seq = text_to_word_sequence(file.read())
@@ -76,14 +79,25 @@ class Imdb:
         # Transform -1.0 to 1.0 floats as 0 to 510 range for RGB values (red green)
         prediction_vector = np.interp(prediction_vector, [-1.0, 1.0], [0, 510]).astype(int)
 
+        preprocessed_file = list(preprocessed_file)
+
+        # find initial sentiment
+        start_index = preprocessed_file.index(1) + 1
+        current_sentiment = prediction_vector[start_index]
+
+        with open(review_filename) as origin_file:
+            content = origin_file.read().split(' ')
+
         output_str = "<html>"
 
-        start_index = list(preprocessed_file).index(1) + 1
-
-        for i in range(start_index, preprocessed_file.size):
-            current_sentiment = prediction_vector[i]
+        # match words from original text against prediction vector to update sentiment
+        # append word with colored span
+        for word in content:
+            cleaned = self.cleanup_word(word)
+            if cleaned in self.word_to_id.keys() and self.word_to_id[cleaned] in preprocessed_file:
+                current_sentiment = prediction_vector[preprocessed_file.index(self.word_to_id[cleaned])]
             output_str += f'<span style="background-color:rgba({255 - current_sentiment % 256},' \
-                f' {min(current_sentiment, 255)}, 0, 0.8);"> {self.id_to_word[preprocessed_file[i]]}</span>'
+                f' {min(current_sentiment, 255)}, 0, 0.8);"> {word}</span>'
 
         output_str += "</html>"
 
@@ -92,6 +106,12 @@ class Imdb:
 
     def pad(self, sequences):
         return sequence.pad_sequences(sequences, maxlen=self.max_length, truncating='post')
+
+    @staticmethod
+    def cleanup_word(word):
+        for c in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
+            word = word.replace(c, "")
+        return word.lower()
 
     @staticmethod
     def get_imdb_word_mappings():
@@ -103,5 +123,5 @@ class Imdb:
 
 
 if __name__ == "__main__":
-    imdb = Imdb(load=True)
+    imdb = Imdb(load=False)
     imdb.generate_illustration("imdb_review_sample.txt", "imdb_review_sample2.html")
