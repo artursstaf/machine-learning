@@ -1,7 +1,7 @@
 from keras import Input, Model
 from keras.callbacks import EarlyStopping
 from keras.engine.saving import load_model
-from keras.layers import Embedding, LSTM, Lambda, CuDNNLSTM, Dense, Flatten
+from keras.layers import Embedding, LSTM, Lambda, CuDNNLSTM, Dense, Flatten, SpatialDropout1D
 from keras_preprocessing import sequence
 from keras_preprocessing.text import text_to_word_sequence
 from keras.datasets import imdb
@@ -16,19 +16,20 @@ class Imdb:
         self.skip_top = 20
 
         if load:
-            self.model = load_model("imdb_model.h5")
-            self.model_predict = load_model("imdb_predict_model.h5")
+            self.model = load_model("imdb_model_2.h5")
+            self.model_predict = load_model("imdb_predict_model_2.h5")
             self.model.summary()
         else:
             L1 = Input(shape=(self.max_length,))
             L2 = Embedding(self.max_features, 50)(L1)
-            L3 = CuDNNLSTM(128, return_sequences=True)(L2)
-            L4 = CuDNNLSTM(64, return_sequences=True)(L3)
-            L5 = CuDNNLSTM(1, return_sequences=True)(L4)
-            L6 = Lambda(lambda x: x[:, -1, :])(L5)
-            L8 = Dense(1, activation='sigmoid')(L6)
+            L3 = SpatialDropout1D(0.2)(L2)
+            L4 = CuDNNLSTM(128, return_sequences=True)(L3)
+            L5 = CuDNNLSTM(64, return_sequences=True)(L4)
+            L6 = CuDNNLSTM(1, return_sequences=True)(L5)
+            L7 = Lambda(lambda x: x[:, -1, :])(L6)
+            L8 = Dense(1, activation='sigmoid')(L7)
 
-            self.model_predict = Model(inputs=[L1], outputs=[L5])
+            self.model_predict = Model(inputs=[L1], outputs=[L6])
             self.model = Model(inputs=[L1], outputs=[L8])
             self.model.summary()
 
@@ -36,7 +37,7 @@ class Imdb:
 
             (x_train, y_train), (x_test, y_test) = imdb.load_data(path="imdb.npz", num_words=self.max_features,
                                                                   skip_top=self.skip_top,
-                                                                  seed=111,
+                                                                  seed=112,
                                                                   start_char=1, oov_char=2, index_from=3)
             # correct start char
             for i, y in zip(x_train, x_test):
@@ -50,8 +51,8 @@ class Imdb:
                            validation_data=(x_test, y_test))
 
             # Save models separately
-            self.model.save('imdb_model.h5')
-            self.model_predict.save("imdb_predict_model.h5")
+            self.model.save('imdb_model_2.h5')
+            self.model_predict.save("imdb_predict_model_2.h5")
 
             print(self.model.evaluate(x_test, y_test))
 
@@ -78,7 +79,7 @@ class Imdb:
         prediction_vector = list(self.model_predict.predict(np.array([preprocessed_file])).reshape(self.max_length))
 
         # Transform -1.0 to 1.0 floats as 0 to 510 range for RGB values (red green)
-        prediction_vector = np.interp(prediction_vector, [-1.0, 1.0], [0, 510]).astype(int)
+        prediction_vector = np.interp(prediction_vector, [-1.0, 1.0], [1, 510]).astype(int)
 
         preprocessed_file = list(preprocessed_file)
 
@@ -97,8 +98,9 @@ class Imdb:
             cleaned = self.cleanup_word(word)
             if cleaned in self.word_to_id.keys() and self.word_to_id[cleaned] in preprocessed_file:
                 current_sentiment = prediction_vector[preprocessed_file.index(self.word_to_id[cleaned])]
-            output_str += f'<span style="background-color:rgba({255 - current_sentiment % 256},' \
-                f' {min(current_sentiment, 255)}, 0, 0.8);"> {word}</span>'
+
+            output_str += f'<span style="background-color:rgba({255 - max(current_sentiment - 255, 0)},' \
+                f' {min(current_sentiment, 255)}, 0, 0.9);"> {word}</span>'
 
         output_str += "</html>"
 
@@ -124,5 +126,5 @@ class Imdb:
 
 
 if __name__ == "__main__":
-    imdb = Imdb(load=True)
+    imdb = Imdb(load=False)
     imdb.generate_illustration("imdb_review_sample.txt", "imdb_review_sample.html")
