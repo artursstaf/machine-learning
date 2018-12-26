@@ -14,7 +14,7 @@ class SMS:
         self.model = Sequential(
             [
                 Embedding(1000, 32),
-                LSTM(64, dropout=0.2, recurrent_dropout=0.2),
+                LSTM(128, dropout=0.2, recurrent_dropout=0.2),
                 Dense(128, activation='relu'),
                 Dense(1, activation='sigmoid'),
             ]
@@ -25,7 +25,7 @@ class SMS:
         else:
             self.model.compile(metrics=['acc'], optimizer='adam', loss='binary_crossentropy')
             df = pd.read_csv('14 spam data.csv', delimiter=',', encoding='latin-1')[['v1', 'v2']]
-            Y = (df.v1 == 'ham').astype('int').as_matrix()
+            Y = (df.v1 == 'ham').astype('int').values
             X = df.v2
             max_words = 1000
             max_len = 150
