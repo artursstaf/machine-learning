@@ -18,6 +18,7 @@ class Imdb:
         if load:
             self.model = load_model("imdb_model.h5")
             self.model_predict = load_model("imdb_predict_model.h5")
+            self.model.summary()
         else:
             L1 = Input(shape=(self.max_length,))
             L2 = Embedding(self.max_features, 50)(L1)
@@ -25,17 +26,17 @@ class Imdb:
             L4 = CuDNNLSTM(64, return_sequences=True)(L3)
             L5 = CuDNNLSTM(1, return_sequences=True)(L4)
             L6 = Lambda(lambda x: x[:, -1, :])(L5)
-            L7 = Dense(1, activation='sigmoid')(L6)
+            L8 = Dense(1, activation='sigmoid')(L6)
 
             self.model_predict = Model(inputs=[L1], outputs=[L5])
-            self.model = Model(inputs=[L1], outputs=[L7])
+            self.model = Model(inputs=[L1], outputs=[L8])
             self.model.summary()
 
             self.model.compile(metrics=['acc'], optimizer='adam', loss='binary_crossentropy')
 
             (x_train, y_train), (x_test, y_test) = imdb.load_data(path="imdb.npz", num_words=self.max_features,
                                                                   skip_top=self.skip_top,
-                                                                  seed=946,
+                                                                  seed=111,
                                                                   start_char=1, oov_char=2, index_from=3)
             # correct start char
             for i, y in zip(x_train, x_test):
@@ -45,12 +46,12 @@ class Imdb:
             (x_train, x_test) = (self.pad(x_train), self.pad(x_test))
 
             self.model.fit(x_train, y_train, epochs=100, batch_size=128, verbose=1,
-                           callbacks=[EarlyStopping(patience=5, restore_best_weights=True)],
+                           callbacks=[EarlyStopping(patience=2, restore_best_weights=True)],
                            validation_data=(x_test, y_test))
 
             # Save models separately
-            self.model.save('imdb_model_2.h5')
-            self.model_predict.save("imdb_predict_model_2.h5")
+            self.model.save('imdb_model.h5')
+            self.model_predict.save("imdb_predict_model.h5")
 
             print(self.model.evaluate(x_test, y_test))
 
@@ -123,5 +124,5 @@ class Imdb:
 
 
 if __name__ == "__main__":
-    imdb = Imdb(load=False)
-    imdb.generate_illustration("imdb_review_sample.txt", "imdb_review_sample2.html")
+    imdb = Imdb(load=True)
+    imdb.generate_illustration("imdb_review_sample.txt", "imdb_review_sample.html")
