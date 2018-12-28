@@ -73,7 +73,7 @@ class ImdbNN:
 
     def benchmark_model(self, test_x, test_y):
         # Expects preprocessed test data
-        print(f'Average accuracy of whole review sentiment prediction: {np.rint(self.model.evaluate(test_x, test_y)[1] * 100)}%')
+        print(f'Average prediction accuracy of all reviews: {np.rint(self.model.evaluate(test_x, test_y)[1] * 100)}%')
 
     def generate_illustration(self, review_filename, output_filename):
         preprocessed_file = self.pad([self.read_sequence_from_file(review_filename)]).reshape(self.max_length)
