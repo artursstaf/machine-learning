@@ -77,10 +77,7 @@ class ImdbNN:
 
     def generate_illustration(self, review_filename, output_filename):
         preprocessed_file = self.pad([self.read_sequence_from_file(review_filename)]).reshape(self.max_length)
-
         review_positive = True if self.model.predict(np.array([preprocessed_file])).reshape(1) >= 0.5 else False
-
-        # Run prediction and get sigmoid activation vector with values 0.0 .. 1.0
         prediction_vector = list(self.model_predict.predict(np.array([preprocessed_file])).reshape(self.max_length))
 
         # Transform 0.0 .. 1.0 floats to 1 .. 510 ints for RGB values (255 red green)
@@ -88,7 +85,7 @@ class ImdbNN:
 
         preprocessed_file = list(preprocessed_file)
 
-        # Find initial sentiment
+        # Set initial sentiment
         current_sentiment = prediction_vector[preprocessed_file.index(1) + 1]
 
         with open(review_filename) as origin_file:
